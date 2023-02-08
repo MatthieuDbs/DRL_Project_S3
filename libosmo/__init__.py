@@ -1,0 +1,1 @@
+from liblogging import print_debug, Debug
