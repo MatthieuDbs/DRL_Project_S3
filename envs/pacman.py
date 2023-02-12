@@ -88,10 +88,10 @@ class Position():
     def __init__(self, pac=(23, 14), copy  = None):
         if copy is not None:
             self.pac = Struct(x = copy.pac.x, y = copy.pac.y)
-            self.ghost_r = Struct(**copy.ghost_r)
-            self.ghost_b = Struct(**copy.ghost_b)
-            self.ghost_p = Struct(**copy.ghost_p)
-            self.ghost_o = Struct(**copy.ghost_o)
+            self.ghost_r = Struct(x = copy.ghost_r.x, y = copy.ghost_r.y)
+            self.ghost_b = Struct(x = copy.ghost_b.x, y = copy.ghost_b.y)
+            self.ghost_p = Struct(x = copy.ghost_p.x, y = copy.ghost_p.y)
+            self.ghost_o = Struct(x = copy.ghost_o.x, y = copy.ghost_o.y)
         else:
             self.pac = Struct(x = pac[0], y = pac[1])
             self.ghost_r = Struct(**INIT_RED)
@@ -180,6 +180,13 @@ class Pacman(DeepSingleAgentEnv):
             PIN: EMP,
             ORA: EMP
         }
+
+    def state_id(self):
+        sum = 0
+        for x in range(len(self.grid)):
+            for y in range(len(self.grid[0])):
+                sum += self.grid[x][y] * (x * len(self.grid[0]) + y)
+        return sum
 
     def state_dim(self) -> int:
         return 8680
@@ -406,6 +413,9 @@ class Pacman(DeepSingleAgentEnv):
         copy.g_hist = dict(self.g_hist)
 
         return copy
+
+    def clone(self):
+        return self.copy()
 
     def get_grid(self):
         return self.grid
