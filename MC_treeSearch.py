@@ -3,8 +3,10 @@ import math
 import numpy as np
 from tqdm import tqdm  
 
+from envs import LineWorld, TTTVsRandom, Pacman, GridWorld
+import numpy as np
 
-def monte_carlo_tree_search(env: MCTSAgentEnv,
+def monte_carlo_tree_search(env,
                             iterations_count: int):
     tree = {}
     root = env.state_id()
@@ -77,7 +79,7 @@ def monte_carlo_tree_search(env: MCTSAgentEnv,
     return best_a
 
 
-def run_n_games_and_report_score(env: MCTSAgentEnv, num_games: int):
+def run_n_games_and_report_score(env, num_games: int):
     total_score = 0
     for _ in tqdm(range(num_games)):
         env.reset()
@@ -88,5 +90,5 @@ def run_n_games_and_report_score(env: MCTSAgentEnv, num_games: int):
     return total_score / num_games
 
 
-env = TTTVsRandom()
-print(run_n_games_and_report_score(env, 10000))
+env = GridWorld()
+print(run_n_games_and_report_score(env, 1000))
