@@ -1,6 +1,6 @@
 from enum import Enum
 import numpy as np
-# import tensorflow as tf
+import tensorflow as tf
 import random
 from .env_base import DeepSingleAgentEnv
 
@@ -181,7 +181,10 @@ class Pacman(DeepSingleAgentEnv):
         }
 
     def state_dim(self) -> int:
-        return 12
+        return 8680
+
+    def state_description(self):
+        return tf.Keras.utils.to_categorical(self.grid, 10).flatten()
 
     def max_action_count(self) -> int:
         return 5

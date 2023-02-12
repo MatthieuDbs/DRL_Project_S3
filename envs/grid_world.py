@@ -29,15 +29,19 @@ class GridWorld(DeepSingleAgentEnv):
         self.step_count = 0
         self.state = state
         self.current_score = 0
+        self.id = 0
+
+    def state_id(self):
+        return self.id
 
     def max_action_count(self) -> int:
         return 4
 
-    # def state_description(self) -> np.ndarray:
-    #     return np.array()
+    def state_description(self) -> np.ndarray:
+        return np.array([(self.state[0] * self.cols + self.state[1]) / (self.cols * self.rows - 1) * 2.0 - 1.0])
 
     def state_dim(self) -> int:
-        return 2
+        return 1
 
     def is_game_over(self) -> bool:
         if (self.state == WIN_STATE) or (self.state == LOSE_STATE):
@@ -55,6 +59,8 @@ class GridWorld(DeepSingleAgentEnv):
         2 |
         return next position on board
         """
+        self.id += (3 ** action_id) + 1
+
         if action_id == UP:
             nxtState = (self.state[0] - 1, self.state[1])
         elif action_id == DOWN:
@@ -84,6 +90,7 @@ class GridWorld(DeepSingleAgentEnv):
         for hole in HOLE:
           self.board[hole[0], hole[1]] = -1
         self.step_count = 0
+        self.id = 0
 
     def view(self):
         print(f'Game Over: {self.is_game_over()}')
@@ -102,8 +109,12 @@ class GridWorld(DeepSingleAgentEnv):
         copy.step_count = self.step_count
         copy.state = self.state
         copy.current_score = self.current_score
+        copy.id = self.id
 
         print("copy")
         copy.view()
 
         return copy
+    
+    def clone(self):
+        return self.copy()
