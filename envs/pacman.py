@@ -3,6 +3,7 @@ import numpy as np
 import tensorflow as tf
 import random
 from .env_base import DeepSingleAgentEnv
+from .liblogging import print_debug
 
 #supergum efect count (1 by turn)
 COUNT = 30
@@ -184,7 +185,7 @@ class Pacman(DeepSingleAgentEnv):
         return 8680
 
     def state_description(self):
-        return tf.Keras.utils.to_categorical(self.grid, 10).flatten()
+        return tf.keras.utils.to_categorical(self.grid, 10).flatten()
 
     def max_action_count(self) -> int:
         return 5
@@ -290,21 +291,21 @@ class Pacman(DeepSingleAgentEnv):
     def move_ghost(self, pos, g):
         acts = self.ghost_available_actions(pos, self.g_speed[g])
         # tuple(map(lambda i, j: i + j, my_tuple_1, my_tuple_2))
-        print(f"{g} pos = ({pos.x}, {pos.y}) and acts = {acts}")
+        print_debug(f"{g} pos = ({pos.x}, {pos.y}) and acts = {acts}")
         act = np.random.choice(acts)
         move = act_dict[Action(act)] if act != 0 else self.g_speed[g]
 
         if self.grid[pos.x + move[0]][pos.y + move[1]] in [WAL, GAT, RED, BLU, PIN, ORA]:
             move = (0,0)
 
-        print(f"move {move}")
+        print_debug(f"move {move}")
 
         old_pos = (pos.x, pos.y)
         new_case = self.grid[pos.x + move[0]][pos.y + move[1]]
         old_case = self.g_hist[g]
         if new_case != g:
             self.g_hist[g] = new_case
-        print(f"oc = {old_case} | nc = {new_case}")
+        print_debug(f"oc = {old_case} | nc = {new_case}")
         can_move = True
         if new_case == PAC:
             if not self.super:
@@ -316,7 +317,7 @@ class Pacman(DeepSingleAgentEnv):
             self.pos.move(move, g)
             self.grid[old_pos[0]][old_pos[1]] = old_case
             self.grid[pos.x][pos.y] = g
-            print(f"o {old_pos} n ({pos.x}, {pos.y})")
+            print_debug(f"o {old_pos} n ({pos.x}, {pos.y})")
 
     def score(self) -> float:
         return self.current_score
@@ -326,11 +327,11 @@ class Pacman(DeepSingleAgentEnv):
         nogo = [WAL, GAT, RED, BLU, PIN, ORA]
         if self.super:
             nogo.append(PAC)
-        print(nogo, pos.x, pos.y)
-        print(self.grid[pos.x - 1][pos.y])
-        print(self.grid[pos.x][pos.y + 1])
-        print(self.grid[pos.x + 1][pos.y])
-        print(self.grid[pos.x][pos.y - 1])
+        print_debug(nogo, pos.x, pos.y)
+        print_debug(self.grid[pos.x - 1][pos.y])
+        print_debug(self.grid[pos.x][pos.y + 1])
+        print_debug(self.grid[pos.x + 1][pos.y])
+        print_debug(self.grid[pos.x][pos.y - 1])
         if self.grid[pos.x - 1][pos.y] not in nogo:
             actions.append(Action.UP.value)
         if self.grid[pos.x][pos.y + 1] not in nogo:
@@ -379,8 +380,8 @@ class Pacman(DeepSingleAgentEnv):
         }
 
     def view(self):
-        print(f'Score : {self.score()}')
-        print(f'Game Over : {self.is_game_over()}')
+        print_debug(f'Score : {self.score()}')
+        print_debug(f'Game Over : {self.is_game_over()}')
         for row in self.grid:
             for col in row:
                 terrain = terrain_dict[col]
