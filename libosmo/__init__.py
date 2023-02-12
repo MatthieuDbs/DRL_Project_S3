@@ -1,1 +1,1 @@
-from liblogging import print_debug, Debug
+from .liblogging import print_debug, Debug

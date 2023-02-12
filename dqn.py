@@ -10,7 +10,9 @@ from tqdm import tqdm
 from envs import LineWorld, TTTVsRandom, Pacman, GridWorld
 import numpy as np
 
-ENV = GridWorld
+from libosmo import print_debug
+
+ENV = Pacman
 
 
 #TODO: metrics
@@ -66,9 +68,9 @@ class DoubleQNetwork():
             if np.random.random() < self.e:
                 a = np.random.choice(aa)
             else:
-                print("test", aa)
-                print(q_pred.numpy()) 
-                print(q_pred.numpy()[aa], np.argmax(q_pred.numpy()[aa]))
+                print_debug("test", aa)
+                print_debug(q_pred.numpy()) 
+                print_debug(q_pred.numpy()[aa], np.argmax(q_pred.numpy()[aa]))
                 a = aa[np.argmax(q_pred.numpy()[aa])]
 
             old_score = self.env.score()
@@ -83,7 +85,7 @@ class DoubleQNetwork():
                 y = r
             else:
                 q_pred_p = self.q(np.array([s_p]))[0]
-                print(q_pred_p.numpy())
+                print_debug(q_pred_p.numpy())
                 max_q_s_p = np.max(q_pred_p.numpy()[aa_p])
                 y = r + self.g * max_q_s_p
 
