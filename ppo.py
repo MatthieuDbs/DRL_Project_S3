@@ -11,6 +11,116 @@ from tqdm import tqdm
 from envs import LineWorld, TTTVsRandom, Pacman, GridWorld
 from libosmo import print_debug
 
+class PPO():
+    def __init__(self, env, max_it, g, lr, e, c1, c2):
+        self.env = env
+        self.max_it = max_it
+        self.g = g
+        self.lr = lr
+        self.e = e
+        self.c1 = c1
+        self.c2 = c2
+
+    def train(self):
+        pi_and_v_input_state_desc = tf.keras.layers.Input((self.env.state_dim(),))
+        pi_and_v_input_mask = tf.keras.layers.Input((self.env.max_action_count(),))
+        opt = tf.keras.optimizers.Adam(learning_rate=self.lr)
+
+        hidden_tensor = pi_and_v_input_state_desc
+        for _ in range(3):
+            hidden_tensor = tf.keras.layers.Dense(128,
+                                                activation=tf.keras.activations.tanh,
+                                                use_bias=True
+                                                )(hidden_tensor)
+
+        output_pi_tensor = tf.keras.layers.Dense(self.env.max_action_count(),
+                                                activation=tf.keras.activations.linear,
+                                                use_bias=True
+                                                )(hidden_tensor)
+
+        output_v_tensor = tf.keras.layers.Dense(1,
+                                                activation=tf.keras.activations.linear,
+                                                use_bias=True
+                                                )(hidden_tensor)
+
+        output_pi_probs = tf.keras.layers.Softmax()(output_pi_tensor, pi_and_v_input_mask)
+
+        pi_and_v_model = tf.keras.models.Model([pi_and_v_input_state_desc, pi_and_v_input_mask],
+                                            [output_pi_probs, output_v_tensor])
+
+        ema_score = 0.0
+        ema_nb_steps = 0.0
+        first_episode = True
+
+        step = 0
+        ema_score_progress = []
+        ema_nb_steps_progress = []
+
+        for _ in tqdm(range(self.max_it)):
+            if self.env.is_game_over():
+                if first_episode:
+                    ema_score = self.env.score()
+                    ema_nb_steps = step
+                    first_episode = False
+                else:
+                    ema_score = (1 - 0.99) * self.env.score() + 0.99 * ema_score
+                    ema_nb_steps = (1 - 0.99) * step + 0.99 * ema_nb_steps
+                    ema_score_progress.append(ema_score)
+                    ema_nb_steps_progress.append(ema_nb_steps)
+
+                self.env.reset()
+                step = 0
+
+            s = self.env.state_description()
+
+            aa = self.env.available_actions_ids()
+
+            mask = np.zeros((self.env.max_action_count(),))
+            print_debug(mask, aa)
+            mask[aa] = 1.0
+
+            pi_s_pred, v_s_pred = model_prediction(pi_and_v_model, [np.array([s]), np.array([mask])])
+
+            allowed_pi_s = pi_s_pred[0].numpy()[aa]
+            sum_allowed_pi_s = np.sum(allowed_pi_s)
+            if sum_allowed_pi_s == 0.0:
+                probs = np.ones((len(aa),)) * 1.0 / (len(aa))
+            else:
+                probs = allowed_pi_s / sum_allowed_pi_s
+
+            a = np.random.choice(aa, p=probs)
+
+            old_score = self.env.score()
+            self.env.act_with_action_id(a)
+            new_score = self.env.score()
+            r = new_score - old_score
+
+            s_p = self.env.state_description()
+            aa_p = self.env.available_actions_ids()
+
+            mask_p = np.zeros((self.env.max_action_count(),))
+
+            if len(aa_p) > 0:
+                mask_p[aa_p] = 1.0
+
+            ### TRAINING TIME !!!
+
+            pi_s_p_pred, v_s_p_pred = model_prediction(pi_and_v_model, [np.array([s_p]), np.array([mask_p])])
+
+            target = r if self.env.is_game_over() else r + self.g * v_s_p_pred[0][0]
+            delta = target - tf.constant(v_s_pred[0][0])  # for now it's At = Advantage of playing action a
+            pi_old = tf.constant(pi_s_pred)
+
+            training_step(pi_and_v_model, [np.array([s]), np.array([mask])], a, target, pi_old, delta, self.c1, self.c2, self.epochs, opt)
+
+            step += 1
+        return pi_and_v_model, ema_score_progress, ema_nb_steps_progress
+
+    def save(self, filename = './ppo.model'):
+        self.model.save(filename)
+
+    def load(self, filename = './ppo.model'):
+        self.model = tf.keras.models.load_model(filename)
 
 @tf.function
 def model_prediction(pi_and_v_model: tf.keras.models.Model,
@@ -153,3 +263,4 @@ plt.plot(scores)
 plt.show()
 plt.plot(steps)
 plt.show()
+
