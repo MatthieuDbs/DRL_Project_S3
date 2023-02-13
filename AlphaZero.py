@@ -160,15 +160,19 @@ class NeuralMcts():
         return chosen_action, actions_weights
 
 class AlphaZero():
-    def __init__(self, env, g_count, train_n_game, train_epoch, model = None):
+    def __init__(self, env, g_count, train_n_game, train_epoch, model = None, load: bool = False, filename = "./AlphaZero.model"):
         self.env = env
         if model:
             self.model = model
         else:
-            self.create_model(env)
+            if load:
+                self.load(filename)
+            else:
+                self.create_model(env)
         self.g_count = g_count
         self.train_n_game = train_n_game
         self.train_epoch = train_epoch
+
 
     def create_model(self, env):
         pi_input_state_desc = tf.keras.layers.Input((env.state_dim(),))
@@ -287,7 +291,11 @@ class AlphaZero():
 
         return self.model
 
+    def save(self, filename = './AlphaZero.model'):
+        self.model.save(filename)
 
+    def load(self, filename = './AlphaZero.model'):
+        self.model = tf.keras.models.load_model(filename)
 
 def choose_action_with_neural_mcts(env,
                                    model: tf.keras.Model,
@@ -601,7 +609,10 @@ def run_ttt_for_n_games(training_games_count: int, games_count: int):
     alpha0 = AlphaZero(env, training_games_count, 30, 5)
 
     alpha0.train()
-    return
+
+    alpha0.save()
+
+    model = alpha0.model
 
     total_score = 0.0
     wins = 0
@@ -645,4 +656,4 @@ def run_ttt_for_n_games(training_games_count: int, games_count: int):
 
 
 if __name__ == "__main__":
-    run_ttt_for_n_games(10, 10)
+    run_ttt_for_n_games(100, 100)
