@@ -111,8 +111,8 @@ class GridWorld(DeepSingleAgentEnv):
         copy.current_score = self.current_score
         copy.id = self.id
 
-        print("copy")
-        copy.view()
+        # print("copy")
+        # copy.view()
 
         return copy
     

@@ -1,5 +1,6 @@
 import math
 import os
+import time
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
@@ -10,6 +11,8 @@ import tensorflow as tf
 from tqdm import tqdm
 from envs import LineWorld, TTTVsRandom, Pacman, GridWorld
 from libosmo import print_debug
+
+ENV = Pacman
 
 class PPO():
     def __init__(self, env, max_it, g, lr, e, c1, c2):
@@ -111,7 +114,9 @@ class PPO():
             delta = target - tf.constant(v_s_pred[0][0])  # for now it's At = Advantage of playing action a
             pi_old = tf.constant(pi_s_pred)
 
-            training_step(pi_and_v_model, [np.array([s]), np.array([mask])], a, target, pi_old, delta, self.c1, self.c2, self.epochs, opt)
+            training_step(pi_and_v_model, [np.array([s]), np.array([mask])], a, target, pi_old, delta, self.c1, self.c2, self.e, opt)
+
+            self.model = pi_and_v_model
 
             step += 1
         return pi_and_v_model, ema_score_progress, ema_nb_steps_progress
@@ -121,6 +126,41 @@ class PPO():
 
     def load(self, filename = './ppo.model'):
         self.model = tf.keras.models.load_model(filename)
+
+    def play(self, ng = 1000):
+        res= {"score" :[],
+        "time": [],
+        "step" : []}
+        
+        for _ in tqdm(range(ng)):
+            start = time.time()
+            env = self.env
+            env.reset()
+            step_count = 0
+    
+            while not env.is_game_over():
+                
+                s = env.state_description()        
+                aa = env.available_actions_ids()
+                mask = np.zeros((env.max_action_count(),))
+                mask[aa] = 1.0
+                pi_s_pred, v_s_pred = model_prediction(self.model, [np.array([s]), np.array([mask])])        
+                chosen_action = tf.squeeze(tf.random.categorical(tf.math.log(pi_s_pred), 1))
+                step_count += 1
+                
+                #print(chosen_action)
+                env.act_with_action_id(chosen_action)
+            fin = time.time()
+            step = step_count
+                
+                #clear_output(wait=True)
+                #os.system('cls')
+                #env.view()
+                #os.system('cls')
+            res["score"].append(env.score())
+            res["time"].append(fin-start)
+            res["step"].append(step)
+        return res 
 
 @tf.function
 def model_prediction(pi_and_v_model: tf.keras.models.Model,
@@ -257,10 +297,13 @@ def ppo(env, max_iter_count: int = 10000,
     return pi_and_v_model, ema_score_progress, ema_nb_steps_progress
 
 
-pi_and_v_model, scores, steps = ppo(GridWorld(), max_iter_count=10000)
-print(pi_and_v_model.weights)
-plt.plot(scores)
-plt.show()
-plt.plot(steps)
-plt.show()
-
+agent = PPO(ENV(), 10000, 0.99, 3e-4, 5, 1.0, 0.01)
+# pi_and_v_model, scores, steps = agent.train()
+# agent.save()
+agent.load("./Pacman/ppo.model")
+# plt.plot(scores)
+# plt.show()
+# plt.plot(steps)
+# plt.show()
+res = agent.play(1000)
+print (f"score: {np.mean(res['score'])}\ntime: {np.mean(res['time'])}\nstep: {np.mean(res['step'])}")

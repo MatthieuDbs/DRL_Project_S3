@@ -3,6 +3,8 @@ import os
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
+import time
+
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.random
@@ -296,6 +298,41 @@ class AlphaZero():
 
     def load(self, filename = './AlphaZero.model'):
         self.model = tf.keras.models.load_model(filename)
+
+    def play(self, ng = 10000):
+        res= {"score" :[],
+        "time": [],
+        "step" : []}
+        
+        for _ in tqdm(range(ng)):
+            start = time.time()
+            env = self.env
+            env.reset()
+            step_count = 0
+    
+            while not env.is_game_over():
+                
+                s = env.state_description()        
+                aa = env.available_actions_ids()
+                mask = np.zeros((env.max_action_count(),))
+                mask[aa] = 1.0
+                pi_s_pred, v_s_pred = self.model([np.array([s]), np.array([mask])])        
+                chosen_action = tf.squeeze(tf.random.categorical(tf.math.log(pi_s_pred), 1))
+                step_count += 1
+                
+                #print(chosen_action)
+                env.act_with_action_id(chosen_action)
+            fin = time.time()
+            step = step_count
+                
+                #clear_output(wait=True)
+                #os.system('cls')
+                #env.view()
+                #os.system('cls')
+            res["score"].append(env.score())
+            res["time"].append(fin-start)
+            res["step"].append(step)
+        return res 
 
 def choose_action_with_neural_mcts(env,
                                    model: tf.keras.Model,
@@ -604,13 +641,13 @@ def train_model(env, X_train, Y_train, epochs: int = 10000) -> tf.keras.models.M
 
 
 def run_ttt_for_n_games(training_games_count: int, games_count: int):
-    env = Pacman()
+    env = GridWorld()
 
     alpha0 = AlphaZero(env, training_games_count, 30, 5)
 
     alpha0.train()
 
-    alpha0.save()
+    alpha0.save("./Gridworld/alpha0.model")
 
     model = alpha0.model
 
@@ -618,10 +655,17 @@ def run_ttt_for_n_games(training_games_count: int, games_count: int):
     wins = 0
     losses = 0
     draws = 0
-    for _ in tqdm(range(games_count)):
-        env.reset()
+    step_avg = 0
+    time_avg = 0
 
-        while not env.is_game_over():
+    for _ in tqdm(range(games_count)):
+        step = 0
+        time_start = time.time()
+        env.reset()
+        deep = 1000
+        while not env.is_game_over() and deep > 0:
+            deep -= 1
+            step += 1
             s = env.state_description()
 
             aa = env.available_actions_ids()
@@ -641,7 +685,7 @@ def run_ttt_for_n_games(training_games_count: int, games_count: int):
             chosen_action = np.random.choice(aa, p=probs)
 
             env.act_with_action_id(chosen_action)
-
+        time_delta = time.time() - time_start
         if env.score() > 0:
             wins += 1
         elif env.score() < 0:
@@ -649,11 +693,14 @@ def run_ttt_for_n_games(training_games_count: int, games_count: int):
         else:
             draws += 1
         total_score += env.score()
+        time_avg += time_delta
+        step_avg += step
     print(f'Apprentice (Neural Net) mean score : {total_score / games_count}')
-    print(
-        f'Apprentice (Neural Net) outcomes % : wins: {wins / games_count}, losses: {losses / games_count}, draws: {draws / games_count}')
+    # print(
+        # f'Apprentice (Neural Net) outcomes % : wins: {wins / games_count}, losses: {losses / games_count}, draws: {draws / games_count}')
+    print(f"time: {time_avg / games_count}\nstep: {step_avg / games_count}")
     return total_score / games_count
 
 
 if __name__ == "__main__":
-    run_ttt_for_n_games(100, 100)
+    run_ttt_for_n_games(100, 1000)
