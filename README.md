@@ -2,6 +2,9 @@
 
 J'ai ajouter Human.py pour que vous puissiez essayer mais on ne l'avais pas a la base.
 
+Vous pouvez regarder les logs git car certaines modification etait faite avant la presentation mais n'ont pas etait ajouter sur
+myges.
+
 ## Play with Human.py
 
 Edit the ENV variable and choose one [Pacman, LineWorld, GridWorld]
