@@ -62,6 +62,10 @@ class LineWorld(DeepSingleAgentEnv):
         copy = LineWorld(self.nb_cells)
         copy.current_cell = self.current_cell
         copy.step_count = self.step_count
+        return copy
+
+    def clone(self):
+        return self.copy()
 
 
 def main():
