@@ -1,7 +1,7 @@
 from envs import LineWorld, TTTVsRandom, Pacman, GridWorld
 import numpy as np
 
-ENV = GridWorld
+ENV = Pacman
 
 
 #TODO: metrics
